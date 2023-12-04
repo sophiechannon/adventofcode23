@@ -1,5 +1,4 @@
-import * as fs from "fs";
-import * as readline from "readline";
+import { readFile } from "../utils/lineReader";
 
 type ValuesKey = keyof typeof MAX_VALUES;
 
@@ -33,9 +32,7 @@ export const isSetValid = (values: string[]) => {
 };
 
 export const main = async (fileName: string) => {
-  const myInterface = readline.createInterface({
-    input: fs.createReadStream(fileName),
-  });
+  const myInterface = readFile(fileName);
 
   let res = 0;
   for await (const line of myInterface) {
@@ -65,9 +62,7 @@ export const getLowestNumbers = (values: string[]) => {
 };
 
 export const mainV2 = async (fileName: string) => {
-  const myInterface = readline.createInterface({
-    input: fs.createReadStream(fileName),
-  });
+  const myInterface = readFile(fileName);
 
   let res = 0;
   for await (const line of myInterface) {

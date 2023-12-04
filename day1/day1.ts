@@ -1,27 +1,4 @@
-import * as fs from "fs";
-import * as readline from "readline";
-
-export const getNumericValues = (value: string) =>
-  value.replaceAll(/[a-zA-Z]/g, "");
-
-export const getFirstAndLast = (value: string) => {
-  if (!value.length) return "0";
-  return value[0] + value[value.length - 1];
-};
-
-export const main = async (fileName: string) => {
-  const myInterface = readline.createInterface({
-    input: fs.createReadStream(fileName),
-  });
-
-  let res = 0;
-  for await (const line of myInterface) {
-    const numbers = getNumericValues(line);
-    const firstAndLastOnly = getFirstAndLast(numbers);
-    res += parseInt(firstAndLastOnly);
-  }
-  return res;
-};
+import { readFile } from "../utils/lineReader";
 
 const VALID = {
   one: "1",
@@ -33,6 +10,25 @@ const VALID = {
   seven: "7",
   eight: "8",
   nine: "9",
+};
+
+export const getNumericValues = (value: string) =>
+  value.replaceAll(/[a-zA-Z]/g, "");
+
+export const getFirstAndLast = (value: string) => {
+  if (!value.length) return "0";
+  return value[0] + value[value.length - 1];
+};
+
+export const main = async (fileName: string) => {
+  const myInterface = readFile(fileName);
+  let res = 0;
+  for await (const line of myInterface) {
+    const numbers = getNumericValues(line);
+    const firstAndLastOnly = getFirstAndLast(numbers);
+    res += parseInt(firstAndLastOnly);
+  }
+  return res;
 };
 
 export const replaceWordsWithNumbers = (value: string) => {
@@ -48,9 +44,7 @@ export const replaceWordsWithNumbers = (value: string) => {
 };
 
 export const mainV2 = async (fileName: string) => {
-  const myInterface = readline.createInterface({
-    input: fs.createReadStream(fileName),
-  });
+  const myInterface = readFile(fileName);
 
   let res = 0;
   for await (const line of myInterface) {
