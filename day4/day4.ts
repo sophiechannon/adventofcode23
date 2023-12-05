@@ -1,11 +1,16 @@
 import { readFile } from "../utils/lineReader";
 
 export const getNumberSets = (line: string) => {
-  const withoutCardNo = line.split(": ")[1];
+  const nameAndNumber = line.split(": ");
+  const withoutCardNo = nameAndNumber[1];
+  const cardName = nameAndNumber[0].split(" ");
+  const cardNo = cardName[cardName.length - 1];
   const twoHalves = withoutCardNo.split(" | ");
   return {
     winning: formatArray(twoHalves[0]),
     yours: formatArray(twoHalves[1]),
+    cardNo,
+    copies: 1,
   };
 };
 
@@ -42,5 +47,5 @@ export const getTotalScore = async (fileName: string) => {
   return res;
 };
 
-const formatArray = (string: string) =>
+export const formatArray = (string: string) =>
   string.replaceAll("  ", " ").trim().split(" ");
