@@ -6,6 +6,8 @@ type PartNumbers = {
       number: string;
       valid: boolean;
       index: number;
+      gear?: number;
+      line: number;
     };
   }[];
 };
@@ -13,10 +15,12 @@ type PartNumbers = {
 export class DataSorter {
   previousLine;
   lineNumber;
-  currentNo: { number: string; index: number } | undefined;
-  lastValueType: "number" | "symbol" | undefined;
+  currentNo: { number: string; index: number; gear?: number } | undefined;
+  lastValueType: "number" | "symbol" | "gear" | undefined;
   potentialPartNumbers: PartNumbers;
   isValidNumber;
+  gears: { id: number; line: number; index: number }[];
+  gearCounter;
 
   constructor() {
     this.previousLine = "";
@@ -25,9 +29,49 @@ export class DataSorter {
     this.lastValueType = undefined;
     this.potentialPartNumbers = {};
     this.isValidNumber = false;
+    this.gears = [];
+    this.gearCounter = 0;
   }
 
   async getPartNumbers(fileName: string) {
+    await this.processData(fileName);
+
+    const result = Object.values(this.potentialPartNumbers)
+      .flat()
+      .map((v) => {
+        const thisObj = Object.values(v)[0];
+        return thisObj.valid ? +thisObj.number : 0;
+      })
+      .reduce((a, b) => a + b);
+
+    this.reset();
+    return result;
+  }
+
+  async getGearRatios(fileName: string) {
+    let counter = 1;
+    let result = 0;
+    await this.processData(fileName);
+
+    const gears = Object.values(this.potentialPartNumbers)
+      .flat()
+      .flatMap((v, i) => {
+        return Object.values(v).filter((o) => o.valid && o.gear);
+      });
+
+    while (counter <= this.gearCounter) {
+      const filtered = gears.filter((g) => g.gear === counter);
+      if (filtered.length === 2) {
+        result += filtered.map((g) => +g.number).reduce((a, b) => a * b);
+      }
+      counter++;
+    }
+
+    this.reset();
+    return result;
+  }
+
+  private async processData(fileName: string) {
     const myInterface = readFile(fileName);
 
     for await (const line of myInterface) {
@@ -49,29 +93,23 @@ export class DataSorter {
           return;
         }
         if (this.isSymbol(char)) {
-          this.handleSymbol(index);
+          this.handleSymbol(char, index);
           return;
         }
       });
       this.previousLine = line;
     }
-
-    const result = Object.values(this.potentialPartNumbers)
-      .flat()
-      .map((v) => {
-        const thisObj = Object.values(v)[0];
-        return thisObj.valid ? +thisObj.number : 0;
-      })
-      .reduce((a, b) => a + b);
-
-    this.reset();
-    return result;
   }
 
   private handleNumber(char: string, index: number) {
     if (!this.currentNo) {
-      this.isValidNumber = this.lastValueType === "symbol";
-      this.currentNo = { number: char, index };
+      const wasGear = this.lastValueType === "gear";
+      this.isValidNumber = this.lastValueType === "symbol" || wasGear;
+      this.currentNo = {
+        number: char,
+        index,
+        gear: wasGear ? this.gears[this.gears.length - 1].id : undefined,
+      };
     } else {
       this.currentNo.number += char;
     }
@@ -79,23 +117,31 @@ export class DataSorter {
   }
 
   private handleNumberEnd(char: string) {
-    const hasSymbolAfterOrAbove = this.isSymbol(char) || this.hasSymbolAbove();
+    const rowAboveInfo = this.hasSymbolAbove();
+    const hasSymbolAfterOrAbove = this.isSymbol(char) || rowAboveInfo.hasSymbol;
     this.isValidNumber = hasSymbolAfterOrAbove || this.isValidNumber;
     if (this.potentialPartNumbers[this.lineNumber] === undefined) {
       this.potentialPartNumbers[this.lineNumber] = [];
     }
-    if (this.currentNo)
+    if (this.currentNo) {
       this.potentialPartNumbers[this.lineNumber].push({
         [this.currentNo.index]: {
           ...this.currentNo,
           valid: this.isValidNumber,
+          gear: rowAboveInfo.gearId ?? this.currentNo.gear,
+          line: this.lineNumber,
         },
       });
+    }
     this.currentNo = undefined;
     this.isValidNumber = false;
   }
 
-  private handleSymbol(index: number) {
+  private handleSymbol(char: string, index: number) {
+    const isGear = char === "*";
+    if (isGear) {
+      this.handleGear(index);
+    }
     if (this.potentialPartNumbers[this.lineNumber - 1]) {
       this.potentialPartNumbers[this.lineNumber - 1] =
         this.potentialPartNumbers[this.lineNumber - 1]?.map((v) => {
@@ -106,21 +152,50 @@ export class DataSorter {
           );
           if (matches.includes(index)) {
             return {
-              ...{ [thisObj.index]: { ...thisObj, valid: true } },
+              ...{
+                [thisObj.index]: {
+                  ...thisObj,
+                  valid: true,
+                  gear: isGear ? this.gearCounter : thisObj.gear,
+                },
+              },
             };
           }
           return v;
         });
     }
 
-    this.lastValueType = "symbol";
+    this.lastValueType = isGear ? "gear" : "symbol";
+  }
+
+  private handleGear(index: number) {
+    this.gearCounter++;
+    this.gears.push({ id: this.gearCounter, index, line: this.lineNumber });
+    if (this.lastValueType === "number") {
+      Object.values(
+        this.potentialPartNumbers[this.lineNumber][
+          this.potentialPartNumbers[this.lineNumber].length - 1
+        ]
+      )[0].gear = this.gearCounter;
+    }
   }
 
   private hasSymbolAbove() {
-    if (!this.currentNo) return false;
+    if (!this.currentNo) return { hasSymbol: false, gearId: undefined };
     const start = !this.currentNo?.index ? 0 : this.currentNo.index - 1;
     const end = this.currentNo.index + this.currentNo.number.length + 1;
-    return this.isSymbol(this.previousLine.slice(start, end));
+
+    const rowAbove = this.previousLine.slice(start, end);
+    const hasSymbol = this.isSymbol(rowAbove);
+    const isGear = rowAbove.includes("*");
+    let gearId = undefined;
+    if (isGear) {
+      gearId = this.gears.find(
+        (g) =>
+          g.line === this.lineNumber - 1 && g.index >= start && g.index <= end
+      )?.id;
+    }
+    return { hasSymbol, gearId };
   }
 
   private isSymbol(string: string) {
