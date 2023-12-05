@@ -59,7 +59,7 @@ export class DataSorter {
     const result = Object.values(this.potentialPartNumbers)
       .flat()
       .map((v) => {
-        const thisObj = v[+Object.keys(v)[0]];
+        const thisObj = Object.values(v)[0];
         return thisObj.valid ? +thisObj.number : 0;
       })
       .reduce((a, b) => a + b);
@@ -99,16 +99,14 @@ export class DataSorter {
     if (this.potentialPartNumbers[this.lineNumber - 1]) {
       this.potentialPartNumbers[this.lineNumber - 1] =
         this.potentialPartNumbers[this.lineNumber - 1]?.map((v) => {
-          const actualIndex = +Object.keys(v)[0];
-          const thisObj = v[actualIndex];
+          const thisObj = Object.values(v)[0];
           const matches = Array.from(
             { length: thisObj?.number.length + 2 },
             (_, i) => i + thisObj.index - 1
           );
           if (matches.includes(index)) {
             return {
-              ...v,
-              ...{ [actualIndex]: { ...thisObj, valid: true } },
+              ...{ [thisObj.index]: { ...thisObj, valid: true } },
             };
           }
           return v;
