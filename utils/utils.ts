@@ -4,3 +4,6 @@ export const readFile = (fileName: string) =>
   readline.createInterface({
     input: fs.createReadStream(fileName),
   });
+
+export const replaceExcessWhitespaceWithSingle = (string: string) =>
+  string.replace(/\s+/g, " ");

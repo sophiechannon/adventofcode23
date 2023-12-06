@@ -1,4 +1,4 @@
-import { readFile } from "../utils/lineReader";
+import { readFile } from "../utils/utils";
 type Map = { from: number; to: number; diff: number }[];
 
 export class SeedMapper {

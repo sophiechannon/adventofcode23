@@ -1,4 +1,4 @@
-import { readFile } from "../utils/lineReader";
+import { readFile } from "../utils/utils";
 
 type ValuesKey = keyof typeof MAX_VALUES;
 

@@ -1,4 +1,4 @@
-import { readFile } from "../utils/lineReader";
+import { readFile } from "../utils/utils";
 
 export const getNumberSets = (line: string) => {
   const nameAndNumber = line.split(": ");

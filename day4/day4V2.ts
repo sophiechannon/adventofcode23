@@ -1,4 +1,4 @@
-import { readFile } from "../utils/lineReader";
+import { readFile } from "../utils/utils";
 import { getMatchedNumbers, getNumberSets } from "./day4";
 
 type Cards = {
