@@ -1,5 +1,5 @@
 import { readFile } from "../utils/lineReader";
-type Map = { [key: number]: number };
+type Map = { from: number; to: number; diff: number }[];
 
 export class SeedMapper {
   seeds: string[];
@@ -14,14 +14,30 @@ export class SeedMapper {
 
   constructor(seeds: string[]) {
     this.seeds = seeds;
-    this.seedToSoilMap = {};
-    this.soilToFertilizerMap = {};
-    this.fertilizerToWaterMap = {};
-    this.waterToLightMap = {};
-    this.lightToTemperatureMap = {};
-    this.temperatureToHumidityMap = {};
-    this.humidityToLocationMap = {};
+    this.seedToSoilMap = [];
+    this.soilToFertilizerMap = [];
+    this.fertilizerToWaterMap = [];
+    this.waterToLightMap = [];
+    this.lightToTemperatureMap = [];
+    this.temperatureToHumidityMap = [];
+    this.humidityToLocationMap = [];
     this.currentType = "";
+  }
+
+  async findSmallestLocation(fileName: string) {
+    await this.processData(fileName);
+    const locations: number[] = [];
+    this.seeds.forEach((seed) => {
+      const stepOne = this.readMap(this.seedToSoilMap, +seed);
+      const stepTwo = this.readMap(this.soilToFertilizerMap, stepOne);
+      const stepThree = this.readMap(this.fertilizerToWaterMap, stepTwo);
+      const stepFour = this.readMap(this.waterToLightMap, stepThree);
+      const stepFive = this.readMap(this.lightToTemperatureMap, stepFour);
+      const stepSix = this.readMap(this.temperatureToHumidityMap, stepFive);
+      const stepSeven = this.readMap(this.humidityToLocationMap, stepSix);
+      locations.push(stepSeven);
+    });
+    return Math.min(...locations);
   }
 
   async processData(fileName: string) {
@@ -38,19 +54,26 @@ export class SeedMapper {
       const data = this.getDataForMapping(line);
       this.createMap(data);
     }
-    return true;
+  }
+
+  readMap(array: Map, seed: number) {
+    const winner = array.filter(
+      (entry) => entry.from <= seed && entry.to >= seed
+    )[0];
+
+    return (winner?.diff ?? 0) + seed;
   }
 
   createMap(set: string[]) {
     const map = this.getMap();
-    let counter = 0;
     const range = +set[2];
-    const dest = set[0];
-    const source = set[1];
-    while (counter < range) {
-      map[+source + counter] = +dest + counter;
-      counter++;
-    }
+    const dest = +set[0];
+    const source = +set[1];
+    map.push({
+      from: source,
+      to: source + range - 1,
+      diff: dest - source,
+    });
   }
 
   getDataForMapping(string: string) {
@@ -110,7 +133,7 @@ export class SeedMapper {
       case "humidity-to-location map:":
         return this.humidityToLocationMap;
       default:
-        return {};
+        return [];
     }
   }
 }
