@@ -7,3 +7,5 @@ export const readFile = (fileName: string) =>
 
 export const replaceExcessWhitespaceWithSingle = (string: string) =>
   string.replace(/\s+/g, " ");
+
+export const removeWhitespace = (string: string) => string.replace(/\s+/g, "");
