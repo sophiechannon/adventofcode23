@@ -76,7 +76,7 @@ export class CamelCardsGame {
     return res;
   }
 
-  sortByCategory(roundsInThisCategory: RoundData[]) {
+  private sortByCategory(roundsInThisCategory: RoundData[]) {
     const roundsWithHex = roundsInThisCategory.map((round) => {
       const handArray = round.hand.split("");
       const hexValue = handArray
