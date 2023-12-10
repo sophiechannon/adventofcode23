@@ -2,10 +2,10 @@ import { readFile } from "../utils/utils";
 import { Round } from "./Round";
 
 type RoundData = { category: string; bid: number; hand: string };
-type CategoryData = { [key: string]: RoundData[] };
 
 export class CamelCardsGame {
   roundScores: RoundData[];
+  joker?: boolean;
   static availableCards = [
     "2",
     "3",
@@ -21,13 +21,30 @@ export class CamelCardsGame {
     "K",
     "A",
   ];
-  static possibleHands = ["11111", "1112", "122", "113", "23", "14", "5"];
+  static jokerCards = [
+    "J",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "T",
+    "Q",
+    "K",
+    "A",
+  ];
+  static possibleHands = ["11111", "2111", "221", "311", "32", "41", "5"];
 
   constructor() {
     this.roundScores = [];
+    this.joker = undefined;
   }
 
-  async play(fileName: string) {
+  async play(fileName: string, jokerMod?: boolean) {
+    this.joker = jokerMod;
     this.roundScores = [];
     const reader = readFile(fileName);
     const round = new Round();
@@ -36,7 +53,7 @@ export class CamelCardsGame {
       const splitLine = line.split(" ");
       const hand = splitLine[0];
       const bid = +splitLine[1];
-      const category = round.getPattern(hand.split(""));
+      const category = round.getPattern(hand.split(""), jokerMod);
       this.roundScores.push({ category, bid, hand });
     }
 
@@ -47,6 +64,7 @@ export class CamelCardsGame {
       const roundsInThisCategory = this.roundScores.filter(
         (round) => round.category === hand
       );
+
       const sorted = this.sortByCategory(roundsInThisCategory);
 
       sorted.forEach((score, index) => {
@@ -60,12 +78,18 @@ export class CamelCardsGame {
 
   sortByCategory(roundsInThisCategory: RoundData[]) {
     const roundsWithHex = roundsInThisCategory.map((round) => {
-      const handString = round.hand.split("");
-      const hexValue = handString
-        .map((value) =>
-          (CamelCardsGame.availableCards.indexOf(value) + 2).toString(16)
-        )
+      const handArray = round.hand.split("");
+      const hexValue = handArray
+        .map((value) => {
+          return (
+            (this.joker
+              ? CamelCardsGame.jokerCards
+              : CamelCardsGame.availableCards
+            ).indexOf(value) + (this.joker ? 1 : 2)
+          ).toString(16);
+        })
         .join("");
+
       return { ...round, hand: hexValue };
     });
 
@@ -84,10 +108,11 @@ export class CamelCardsGame {
 
   private replaceHexWithActualCard(hand: string) {
     return hand
+      .replaceAll("1", "J")
       .replaceAll("a", "T")
-      .replaceAll("b", "J")
-      .replaceAll("c", "Q")
-      .replaceAll("d", "K")
+      .replaceAll("b", this.joker ? "Q" : "J")
+      .replaceAll("c", this.joker ? "K" : "Q")
+      .replaceAll("d", this.joker ? "A" : "K")
       .replaceAll("e", "A");
   }
 }
