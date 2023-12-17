@@ -1,6 +1,10 @@
 import { readFile } from "../utils/utils";
 
 export class PatternFinder {
+  private reverseMod;
+  constructor(reverseMod?: boolean) {
+    this.reverseMod = reverseMod;
+  }
   async run(filename: string) {
     const reader = readFile(filename);
     let result = 0;
@@ -14,13 +18,17 @@ export class PatternFinder {
     return result;
   }
 
-  getArray(string: string) {
+  private getArray(string: string) {
     return string.split(" ").map((v) => +v);
   }
 
-  getNextLine(array: number[], lastInEachLine: number[] = []): number[] {
+  private getNextLine(
+    array: number[],
+    lastInEachLine: number[] = []
+  ): number[] {
     const newArr: number[] = [];
-    lastInEachLine.push(array[array.length - 1]);
+
+    lastInEachLine.push(array[this.reverseMod ? 0 : array.length - 1]);
     array.reduce((a, b) => {
       newArr.push(b - a);
       return b;
@@ -32,7 +40,10 @@ export class PatternFinder {
     }
   }
 
-  getResult(array: number[]) {
-    return array.reverse().reduce((a, b) => a + b);
+  private getResult(array: number[]) {
+    return array.reverse().reduce((a, b) => {
+      if (this.reverseMod) return b - a;
+      return a + b;
+    });
   }
 }
