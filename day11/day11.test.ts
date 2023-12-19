@@ -1,9 +1,9 @@
-import { CosmicExpansion } from "./day11";
+import { CosmosNavigator } from "./day11";
 
-describe(CosmicExpansion, () => {
+describe(CosmosNavigator, () => {
   it("test", async () => {
-    const cos = new CosmicExpansion();
-    await cos.run("day11/test");
+    const cos = new CosmosNavigator();
+    expect(await cos.run("day11/test")).toEqual(374);
     expect(cos.cosmos).toEqual([
       [".", ".", ".", ".", "1", ".", ".", ".", ".", ".", ".", ".", "."],
       [".", ".", ".", ".", ".", ".", ".", ".", ".", "2", ".", ".", "."],
@@ -18,5 +18,9 @@ describe(CosmicExpansion, () => {
       [".", ".", ".", ".", ".", ".", ".", ".", ".", "7", ".", ".", "."],
       ["8", ".", ".", ".", ".", "9", ".", ".", ".", ".", ".", ".", "."],
     ]);
+  });
+  it("test", async () => {
+    const cos = new CosmosNavigator();
+    expect(await cos.run("day11/input")).toEqual(9724940);
   });
 });

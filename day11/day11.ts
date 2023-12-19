@@ -1,14 +1,41 @@
 import { readFile } from "../utils/utils";
 
-export class CosmicExpansion {
+type GalaxyMap = { row: number; col: number; id: string };
+
+export class CosmosNavigator {
   cosmos: string[][];
+  galaxyMap: GalaxyMap[];
 
   constructor() {
     this.cosmos = [];
+    this.galaxyMap = [];
   }
 
   async run(filename: string) {
+    let res = 0;
     await this.parseMap(filename);
+    this.mapGalaxies();
+    res += this.findShortestPaths(this.galaxyMap, 0, res);
+    return res;
+  }
+
+  private findShortestPaths(
+    array: GalaxyMap[],
+    sliceStart: number,
+    res: number
+  ): number {
+    const sliced = array.slice(sliceStart);
+    sliced.reduce((a, b) => {
+      const toAdd = Math.abs(a.col - b.col) + Math.abs(a.row - b.row);
+      res += toAdd;
+      return a;
+    });
+
+    if (sliced.length === 2) {
+      return res;
+    } else {
+      return this, this.findShortestPaths(array, sliceStart + 1, res);
+    }
   }
 
   private async parseMap(filename: string) {
@@ -44,12 +71,12 @@ export class CosmicExpansion {
       {
         length: this.cosmos[0].length,
       },
-      (v, i) => i
+      (_v, i) => i
     ).filter((c) => !colsWithGalaxies.includes(c));
-    this.cosmos = this.expandGalaxy(colsWithoutGalaxies, rowsWithoutGalaxies);
+    this.cosmos = this.expandCosmos(colsWithoutGalaxies, rowsWithoutGalaxies);
   }
 
-  expandGalaxy(colsWithout: number[], rowsWithout: number[]) {
+  private expandCosmos(colsWithout: number[], rowsWithout: number[]) {
     const emptyRow = Array.from(
       {
         length: this.cosmos[0].length + colsWithout.length,
@@ -67,5 +94,15 @@ export class CosmicExpansion {
     });
 
     return cols;
+  }
+
+  private mapGalaxies() {
+    this.cosmos.forEach((line, row) => {
+      line.forEach((space, col) => {
+        if (space !== ".") {
+          this.galaxyMap.push({ row, col, id: space });
+        }
+      });
+    });
   }
 }
