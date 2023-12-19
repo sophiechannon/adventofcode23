@@ -102,7 +102,7 @@ export class PipeMapper {
     return nextMove;
   }
 
-  handleFirstMove(): (PreviousMove | undefined)[] {
+  private handleFirstMove(): (PreviousMove | undefined)[] {
     if (this.startingPoint === undefined) return [];
     const res: (PreviousMove | undefined)[] = [];
 
