@@ -5,36 +5,73 @@ type GalaxyMap = { row: number; col: number; id: string };
 export class CosmosNavigator {
   cosmos: string[][];
   galaxyMap: GalaxyMap[];
+  oldMod;
 
-  constructor() {
+  constructor(oldMod?: number) {
     this.cosmos = [];
     this.galaxyMap = [];
+    this.oldMod = oldMod ? oldMod - 1 : undefined;
   }
 
   async run(filename: string) {
     let res = 0;
-    await this.parseMap(filename);
+    const { colsWithoutGalaxies, rowsWithoutGalaxies } = await this.parseMap(
+      filename
+    );
     this.mapGalaxies();
-    res += this.findShortestPaths(this.galaxyMap, 0, res);
+    res += this.findShortestPaths(
+      this.galaxyMap,
+      0,
+      res,
+      colsWithoutGalaxies,
+      rowsWithoutGalaxies
+    );
     return res;
   }
 
   private findShortestPaths(
     array: GalaxyMap[],
     sliceStart: number,
-    res: number
+    res: number,
+    colsWithout: number[],
+    rowsWithout: number[]
   ): number {
     const sliced = array.slice(sliceStart);
     sliced.reduce((a, b) => {
+      const numberOfExtraCols =
+        colsWithout.filter((c) => {
+          if (a.col < b.col) {
+            return c > a.col && c < b.col;
+          }
+          return c > b.col && c < a.col;
+        }).length * (this.oldMod ?? 0);
+      const numberOfExtraRows =
+        rowsWithout.filter((r) => {
+          if (a.row < b.row) {
+            return r > a.row && r < b.row;
+          }
+          return r > b.row && r < a.row;
+        }).length * (this.oldMod ?? 0);
+
       const toAdd = Math.abs(a.col - b.col) + Math.abs(a.row - b.row);
-      res += toAdd;
+      res += toAdd + numberOfExtraCols + numberOfExtraRows;
+
       return a;
     });
 
     if (sliced.length === 2) {
       return res;
     } else {
-      return this, this.findShortestPaths(array, sliceStart + 1, res);
+      return (
+        this,
+        this.findShortestPaths(
+          array,
+          sliceStart + 1,
+          res,
+          colsWithout,
+          rowsWithout
+        )
+      );
     }
   }
 
@@ -73,7 +110,10 @@ export class CosmosNavigator {
       },
       (_v, i) => i
     ).filter((c) => !colsWithGalaxies.includes(c));
-    this.cosmos = this.expandCosmos(colsWithoutGalaxies, rowsWithoutGalaxies);
+    if (!this.oldMod)
+      this.cosmos = this.expandCosmos(colsWithoutGalaxies, rowsWithoutGalaxies);
+
+    return { colsWithoutGalaxies, rowsWithoutGalaxies };
   }
 
   private expandCosmos(colsWithout: number[], rowsWithout: number[]) {
