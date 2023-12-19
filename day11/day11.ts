@@ -5,12 +5,12 @@ type GalaxyMap = { row: number; col: number; id: string };
 export class CosmosNavigator {
   cosmos: string[][];
   galaxyMap: GalaxyMap[];
-  oldMod;
+  galaxyAge;
 
-  constructor(oldMod?: number) {
+  constructor(galaxyAge: number) {
     this.cosmos = [];
     this.galaxyMap = [];
-    this.oldMod = oldMod ? oldMod - 1 : undefined;
+    this.galaxyAge = galaxyAge ? galaxyAge - 1 : 0;
   }
 
   async run(filename: string) {
@@ -38,24 +38,20 @@ export class CosmosNavigator {
   ): number {
     const sliced = array.slice(sliceStart);
     sliced.reduce((a, b) => {
-      const numberOfExtraCols =
-        colsWithout.filter((c) => {
-          if (a.col < b.col) {
-            return c > a.col && c < b.col;
-          }
-          return c > b.col && c < a.col;
-        }).length * (this.oldMod ?? 0);
-      const numberOfExtraRows =
-        rowsWithout.filter((r) => {
-          if (a.row < b.row) {
-            return r > a.row && r < b.row;
-          }
-          return r > b.row && r < a.row;
-        }).length * (this.oldMod ?? 0);
+      const numberOfExtraCols = this.getExpansionAmount(
+        colsWithout,
+        a.col,
+        b.col
+      );
+
+      const numberOfExtraRows = this.getExpansionAmount(
+        rowsWithout,
+        a.row,
+        b.row
+      );
 
       const toAdd = Math.abs(a.col - b.col) + Math.abs(a.row - b.row);
       res += toAdd + numberOfExtraCols + numberOfExtraRows;
-
       return a;
     });
 
@@ -78,7 +74,6 @@ export class CosmosNavigator {
   private async parseMap(filename: string) {
     const reader = readFile(filename);
     let rowCounter = 0;
-    let galaxyCounter = 0;
     const colsWithGalaxies: number[] = [];
     const rowsWithoutGalaxies: number[] = [];
 
@@ -93,8 +88,6 @@ export class CosmosNavigator {
             if (!colsWithGalaxies.includes(index)) {
               colsWithGalaxies.push(index);
             }
-            galaxyCounter++;
-            return galaxyCounter.toString();
           }
           return element;
         });
@@ -110,30 +103,19 @@ export class CosmosNavigator {
       },
       (_v, i) => i
     ).filter((c) => !colsWithGalaxies.includes(c));
-    if (!this.oldMod)
-      this.cosmos = this.expandCosmos(colsWithoutGalaxies, rowsWithoutGalaxies);
 
     return { colsWithoutGalaxies, rowsWithoutGalaxies };
   }
 
-  private expandCosmos(colsWithout: number[], rowsWithout: number[]) {
-    const emptyRow = Array.from(
-      {
-        length: this.cosmos[0].length + colsWithout.length,
-      },
-      (_v) => "."
+  private getExpansionAmount(array: number[], a: number, b: number) {
+    return (
+      array.filter((c) => {
+        if (a < b) {
+          return c > a && c < b;
+        }
+        return c > b && c < a;
+      }).length * this.galaxyAge
     );
-    const cols = this.cosmos.map((row) => {
-      colsWithout.forEach((c, i) => {
-        row.splice(c + i, 0, ".");
-      });
-      return row;
-    });
-    rowsWithout.forEach((r, i) => {
-      cols.splice(r + i, 0, emptyRow);
-    });
-
-    return cols;
   }
 
   private mapGalaxies() {
